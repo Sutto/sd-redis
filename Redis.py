@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
-
-import re
-import commands
-
+import subprocess
 
 class Redis:
     def __init__(self, agent_config, checks_logger, raw_config):
@@ -11,25 +8,22 @@ class Redis:
         self.checks_logger = checks_logger
         self.raw_config = raw_config
 
+        self.command = ["redis-cli"]
+        if 'Redis' in self.raw_config:
+            config = self.raw_config['Redis']
+            if 'password' in config:
+                self.command.extend(('-a', config['host']))
+        self.command.append("info")
+
     def run(self):
-        stats = {}
-        status, out = commands.getstatusoutput(self.redis_info_cmd())
-        if status != 0:
+        try:
+            output = subprocess.check_output(self.command)
+            stats = dict((key.strip(), value.strip()) for (key, value) in (line.split(':', 1) for line in output.splitlines() if ':' in line))
             return stats
-        # Grab every statistic available and leave it to the end user to
-        # determine which fields they care about
-        for key, val in [line.split(':') for line in out.splitlines()]:
-            stats[key] = val
-        return stats
-
-    def redis_info_cmd(self):
-        if self.raw_config.get('Redis') and self.raw_config['Redis'].get('password'):
-                self.checks_logger.debug('Found Redis password in config')
-                return "redis-cli -a %s info" % self.raw_config['Redis']['password']
-        else:
-                return "redis-cli info"
-
+        except subprocess.CalledProcessError:
+            self.checks_logger.exception("Redis doesn't seem to be running, perhaps check your configuration?")
+            return {}
 
 if __name__ == '__main__':
-    redis = Redis(None, None, None)
-    print redis.run()
+    import logging
+    print Redis({}, logging, {}).run()
