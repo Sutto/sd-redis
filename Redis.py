@@ -3,6 +3,13 @@
 import subprocess
 
 class Redis:
+    config_args = {
+        "host": "-h",
+        "port": "-p",
+        "socket": "-s",
+        "password": "-a"
+    }
+
     def __init__(self, agent_config, checks_logger, raw_config):
         self.agent_config = agent_config
         self.checks_logger = checks_logger
@@ -11,8 +18,9 @@ class Redis:
         self.command = ["redis-cli"]
         if 'Redis' in self.raw_config:
             config = self.raw_config['Redis']
-            if 'password' in config:
-                self.command.extend(('-a', config['host']))
+            for (key, arg) in self.config_args.iteritems():
+                if key in config:
+                    self.command.extend((arg, config['host']))
         self.command.append("info")
 
     def run(self):
