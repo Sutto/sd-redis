@@ -19,10 +19,11 @@ class Redis:
         try:
             output = subprocess.check_output(self.command)
             stats = dict((key.strip(), value.strip()) for (key, value) in (line.split(':', 1) for line in output.splitlines() if ':' in line))
+            stats['running'] = True
             return stats
         except subprocess.CalledProcessError:
             self.checks_logger.exception("Redis doesn't seem to be running, perhaps check your configuration?")
-            return {}
+            return {'running': False}
 
 if __name__ == '__main__':
     import logging
