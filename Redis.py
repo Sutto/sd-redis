@@ -32,6 +32,9 @@ class Redis:
         except subprocess.CalledProcessError:
             self.checks_logger.exception("Redis doesn't seem to be running, perhaps check your configuration?")
             return {'running': False}
+        except OSError:
+            self.checks_logger.exception("redis-cli could not be found.")
+            return {'running': False}
 
 if __name__ == '__main__':
     import logging
