@@ -3,6 +3,9 @@
 import subprocess
 
 class Redis:
+
+    subcommands = ['commandstats', 'cpu', 'stats', 'memory', 'persistence', 'server', 'clients']
+
     config_args = {
         "host": "-h",
         "port": "-p",
@@ -20,13 +23,18 @@ class Redis:
             config = self.raw_config['Redis']
             for (key, arg) in self.config_args.iteritems():
                 if key in config:
-                    self.command.extend((arg, config['host']))
-        self.command.append("info")
+                    self.command.extend((arg, config[key]))
 
     def run(self):
         try:
-            output = subprocess.check_output(self.command)
-            stats = dict((key.strip(), value.strip()) for (key, value) in (line.split(':', 1) for line in output.splitlines() if ':' in line))
+            stats = {}
+            for subcommand in self.subcommands:
+                output = subprocess.check_output(self.command + ["info", subcommand])
+                for line in output.splitlines():
+                    self.expand_result(stats, line)
+            max_memory = subprocess.check_output(self.command + ["config", "get", "maxmemory"]).splitlines()[1].strip()
+            if max_memory != '0':
+                stats['memory_under_limit'] = str(int(max_memory) - int(stats['used_memory']))
             stats['running'] = True
             return stats
         except subprocess.CalledProcessError:
@@ -35,6 +43,16 @@ class Redis:
         except OSError:
             self.checks_logger.exception("redis-cli could not be found.")
             return {'running': False}
+
+    def expand_result(self, onto, line):
+        if ':' in line:
+            key, value = line.split(":", 1)
+            if "," in value and "=" in value:
+                for choice in value.split(","):
+                    child_key, child_value = choice.split("=", 1)
+                    onto[key + "/" + child_key.strip()] = child_value.strip()
+            else:
+                onto[key] = value
 
 if __name__ == '__main__':
     import logging
