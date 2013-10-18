@@ -4,7 +4,7 @@ import subprocess
 
 class Redis:
 
-    subcommands = ['commandstats', 'cpu', 'stats', 'memory', 'persistence', 'server', 'clients']
+    subcommands = ['commandstats', 'cpu', 'stats', 'memory', 'persistence', 'clients']
 
     config_args = {
         "host": "-h",
