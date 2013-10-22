@@ -33,7 +33,7 @@ class Redis:
                 for line in output.splitlines():
                     self.expand_result(stats, line)
             max_memory = subprocess.check_output(self.command + ["config", "get", "maxmemory"]).splitlines()[1].strip()
-            if max_memory != '0':
+            if max_memory != '0' and max_memory != '':
                 stats['memory_under_limit'] = str(int(max_memory) - int(stats['used_memory']))
             stats['running'] = True
             return stats
